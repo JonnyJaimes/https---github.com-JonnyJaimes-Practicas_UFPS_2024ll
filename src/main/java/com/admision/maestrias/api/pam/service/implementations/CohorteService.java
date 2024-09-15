@@ -13,7 +13,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.admision.maestrias.api.pam.exceptions.CohorteExistException;
+import com.admision.maestrias.api.pam.repository.FileStorageRepository;
 import com.admision.maestrias.api.pam.repository.S3Repository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,7 @@ import com.admision.maestrias.api.pam.repository.CohorteRepository;
 import com.admision.maestrias.api.pam.service.interfaces.CohorteServiceInterface;
 import com.admision.maestrias.api.pam.shared.dto.CohorteDTO;
 
-import javax.annotation.PostConstruct;
+
 
 /**
  * @author Juan Pablo Correa Tarazona, Angel Yesid Duque Cruz, Gibson Arbey, Julian Camilo Riveros Fonseca, Ingrid Florez
@@ -33,7 +35,7 @@ public class CohorteService implements CohorteServiceInterface {
     @Autowired
     private CohorteRepository cohorteRepository;
     @Autowired
-    private S3Repository s3Repository;
+    private FileStorageRepository fileStorageRepository;
     @Autowired
     private NotificacionService notificacionService;
 
@@ -75,7 +77,7 @@ public class CohorteService implements CohorteServiceInterface {
             throw new IllegalArgumentException("El rango de fechas del cohorte se superpone con otros cohortes existentes.");
         }
 
-        s3Repository.crearCarpeta(newCohorte.getId().toString());
+        fileStorageRepository.createDirectory(newCohorte.getId().toString());
 
     }
 

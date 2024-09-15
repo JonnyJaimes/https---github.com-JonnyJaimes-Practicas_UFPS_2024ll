@@ -1,12 +1,10 @@
 package com.admision.maestrias.api.pam.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotEmpty;
+import lombok.*;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotEmpty;
+
 import java.io.Serializable;
 
 /**
@@ -18,6 +16,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@ToString
 @Table(name = "authorities", uniqueConstraints= {@UniqueConstraint(columnNames= {"id", "authority"})})
 public class RolEntity implements Serializable {
     
@@ -37,4 +36,5 @@ public class RolEntity implements Serializable {
     @NotEmpty
     @Column(nullable = false, length = 20)
 	private String authority;
+
 }

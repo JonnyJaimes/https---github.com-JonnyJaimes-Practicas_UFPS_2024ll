@@ -18,7 +18,7 @@ import com.admision.maestrias.api.pam.repository.AspiranteRepository;
 import com.admision.maestrias.api.pam.service.interfaces.NotificacionServiceInterface;
 import com.admision.maestrias.api.pam.shared.dto.NotificacionDTO;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 
 /**
  * @author Juan Pablo Correa Tarazona, Angel Yesid Duque Cruz

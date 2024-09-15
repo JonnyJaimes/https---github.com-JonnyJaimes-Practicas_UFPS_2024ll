@@ -1,13 +1,15 @@
 package com.admision.maestrias.api.pam.entity;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotEmpty;
+
 import java.io.Serializable;
+import java.util.Date;
 
 /**
  * Clase de entidad que representa la tabla "documento" en la base de datos.
@@ -39,22 +41,22 @@ public class DocumentoEntity implements Serializable{
     @JoinColumn(name = "estado_id", nullable = false)
     private EstadoDocEntity estado;
 
-    /**
-     * url donde se encuentra el documento 
-     */
+
+     /** url donde se encuentra el documento */
+
     @Column(nullable = true)
     @NotEmpty
     private String url;
 
     /**
      * Key del archivo en el s3
-     */
+    */
     @Column(nullable = false)
     private String keyFile;
 
     /**
      * Extensión del archivo subido
-     */
+   */
     @Column(nullable = false)
     private String formato;
 
@@ -63,6 +65,17 @@ public class DocumentoEntity implements Serializable{
      */
     @Column(nullable = true)
     private String retroalimentacion;
+
+
+    @Column(nullable = false)
+    private Date fecha;
+    private String comentarios;
+    private String archivo;
+
+    public DocumentoEntity(Date fecha){
+        this.fecha = fecha;
+    }
+
 
 
 }

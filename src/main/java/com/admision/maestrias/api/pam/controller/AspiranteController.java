@@ -12,6 +12,7 @@ import com.admision.maestrias.api.pam.service.implementations.DocumentoService;
 import com.admision.maestrias.api.pam.service.implementations.EmailService;
 import com.admision.maestrias.api.pam.shared.dto.AspiranteDTO;
 import com.admision.maestrias.api.pam.shared.dto.CohorteDTO;
+import jakarta.validation.Valid;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/aspirante")
+@CrossOrigin(origins = "http://localhost:4200")
 public class AspiranteController {
 
     @Autowired

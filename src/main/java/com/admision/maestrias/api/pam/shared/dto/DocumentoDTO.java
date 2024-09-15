@@ -1,37 +1,40 @@
-    package com.admision.maestrias.api.pam.shared.dto;
+package com.admision.maestrias.api.pam.shared.dto;
 
-    import lombok.Builder;
+import lombok.*;
 
-    import lombok.Value;
+import java.net.URL;
 
-
-    import java.net.URL;
-
+/**
+ * DTO de DocumentoEntity
+ */
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class DocumentoDTO {
     /**
-     * DTO de DocumentoEntity
+     * Clave del archivo en el sistema de almacenamiento
      */
-    @Value
-    @Builder
-    public class DocumentoDTO {
-        /**
-         * Clave del archivo en el s3
-         */
-        private String keyFile;
-        /**
-         * Url del archivo en el s3
-         */
-        private URL url;
-        /**
-         * extensión del archivo
-         */
-        private String formato;
-        /**
-         * Tipo de documento
-         */
-        private TipoDocumentoDTO tipoDocumentoDTO;
-        /**
-         * Retroalimentación del documento
-         */
-        private String retroalimentacion;
-
-    }
+    private String keyFile;
+    /**
+     * URL del archivo en el sistema de almacenamiento
+     */
+    private URL url;
+    /**
+     * Nombre original del archivo que el usuario proporcionó
+     */
+    private String name;
+    /**
+     * Extensión del archivo (por ejemplo, jpg, pdf)
+     */
+    private String formato;
+    /**
+     * Tipo de documento (por ejemplo, foto, diploma, etc.)
+     */
+    private TipoDocumentoDTO tipoDocumentoDTO;
+    /**
+     * Retroalimentación sobre el documento (si aplica)
+     */
+    private String retroalimentacion;
+}

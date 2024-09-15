@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.TextStyle;
 import java.util.*;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +12,7 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +30,7 @@ import com.admision.maestrias.api.pam.shared.dto.NotificacionDTO;
  */
 @RestController
 @RequestMapping("/notificacion")
+@CrossOrigin(origins = "http://localhost:4200")
 public class NotificacionController {
 
     @Autowired

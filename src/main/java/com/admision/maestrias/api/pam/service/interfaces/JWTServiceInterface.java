@@ -14,6 +14,11 @@ public interface JWTServiceInterface {
 	public boolean validate(String token);
 	public Claims getClaims(String token);
 	public String getUsername(String token);
-	public Collection<? extends GrantedAuthority> getRoles(String token) throws IOException;
+
+    Integer getId(String token);
+
+    public Collection<? extends GrantedAuthority> getRoles(String token) throws IOException;
 	public String resolve(String token);
+
+    String getRoleFromToken(String token);
 }

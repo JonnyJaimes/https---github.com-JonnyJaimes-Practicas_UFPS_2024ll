@@ -16,7 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/users")
-
+@CrossOrigin(origins = "http://localhost:4200")
 public class UserController {
     
     @Autowired
@@ -60,11 +60,11 @@ public class UserController {
     }
 
     @GetMapping("/confirmar/{token}")
-    public String confirmarCuenta(@PathVariable String token){
-
-        return userService.confirmarCuenta(token);
-
+    public ResponseEntity<AnyResponse> confirmarCuenta(@PathVariable String token) {
+        String resultado = userService.confirmarCuenta(token);
+        return ResponseEntity.ok(new AnyResponse(resultado));
     }
+
 
     /**
      * Endpoint para creación de usuarios con el rol de encargado

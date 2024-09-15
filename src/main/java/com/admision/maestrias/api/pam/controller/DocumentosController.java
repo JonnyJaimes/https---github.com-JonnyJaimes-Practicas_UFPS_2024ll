@@ -2,8 +2,8 @@ package com.admision.maestrias.api.pam.controller;
 
 import com.admision.maestrias.api.pam.models.responses.AnyResponse;
 import com.admision.maestrias.api.pam.models.responses.DocumentoResponse;
+import com.admision.maestrias.api.pam.repository.FileStorageRepository;
 import com.admision.maestrias.api.pam.service.implementations.AspiranteService;
-import com.admision.maestrias.api.pam.service.implementations.AwsService;
 import com.admision.maestrias.api.pam.shared.dto.AspiranteDTO;
 import com.admision.maestrias.api.pam.shared.dto.UserDTO;
 import org.slf4j.Logger;
@@ -22,61 +22,60 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.admision.maestrias.api.pam.shared.dto.DocumentoDTO;
 
-/**
- * Esta clase es un controlador REST para interactuar con los servicios de Amazon S3.
- * Está mapeado en la ruta "/documentos".
- * @author Julian Camilo Riveros Fonseca, Juan Pablo Correa Tarazona
- */
 @RestController
 @RequestMapping(value = "/documentos")
+@CrossOrigin(origins = "http://localhost:4200")
 public class DocumentosController {
 
     @Autowired
-    private AwsService awsService;
+    private FileStorageRepository fileStorageService; // Cambiado de awsService a fileStorageService
 
     @Autowired
     private AspiranteService aspiranteService;
 
-    /**
-     * Método GET que retorna la lista de archivos en un bucket de Amazon S3.
-     * @param idAspirante ID del aspirante
-     * @return Objeto ResponseEntity que contiene la lista de archivos y el estado HTTP OK.
-     * @throws IOException Si ocurre algún error al obtener la lista de archivos.
-     */
     @GetMapping("/listFiles/{idAspirante}")
     public ResponseEntity<List<DocumentoResponse>> listarDocumentosAspirante(@PathVariable Integer idAspirante) throws IOException {
-
         List<DocumentoResponse> documentoResponses = new ArrayList<>();
-        HttpStatus status=HttpStatus.OK;
+        HttpStatus status = HttpStatus.OK;
         try {
-            documentoResponses =  awsService.getAspiranteFiles(idAspirante);
+            List<DocumentoDTO> documentoDTOs = fileStorageService.listFiles(idAspirante.toString());
+
+            // Convertir DocumentoDTO a DocumentoResponse
+            for (DocumentoDTO documentoDTO : documentoDTOs) {
+                DocumentoResponse response = new DocumentoResponse();
+                response.setKeyFile(documentoDTO.getKeyFile());
+                response.setFormato(documentoDTO.getFormato());
+                response.setUrl(documentoDTO.getUrl().toString());
+
+                // Asignar estado y tipo de documento si es necesario o manejado en otro lugar
+                // response.setEstado(...);
+                // response.setDocumento(...);
+
+                documentoResponses.add(response);
+            }
+
         } catch (Exception e) {
-            status =  HttpStatus.INTERNAL_SERVER_ERROR;
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
         return new ResponseEntity<>(documentoResponses, status);
     }
 
-    /**
-     * Método GET que permite descargar un archivo de Amazon S3.
-     * @param tipoDocumento ID tipo de documento
-     * @return Objeto ResponseEntity que contiene el archivo y los encabezados necesarios para su descarga.
-     * @throws IOException Si ocurre algún error al descargar el archivo.
-     */
+
     @GetMapping("/downloadFile")
-    public ResponseEntity<ByteArrayResource> downloadS3File(@RequestParam(value = "tipoDocumento") String tipoDocumento)
-            throws IOException {
-        Logger logger = LoggerFactory.getLogger(DocumentosController.class);
+    public ResponseEntity<ByteArrayResource> downloadFile(@RequestParam(value = "tipoDocumento") String tipoDocumento) throws IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getPrincipal().toString();
 
-        byte[] data = awsService.downloadFile(tipoDocumento, email);
+        byte[] data = fileStorageService.downloadFile(tipoDocumento);
         ByteArrayResource resource = new ByteArrayResource(data);
         return ResponseEntity
                 .ok()
@@ -86,29 +85,15 @@ public class DocumentosController {
                 .body(resource);
     }
 
-    /**
-     * Método DELETE que permite eliminar un archivo de Amazon S3.
-     * @param tipoDocumento Nombre del archivo que se desea eliminar.
-     * @return Objeto ResponseEntity con el mensaje "File deleted" y el estado HTTP OK.
-     */
     @DeleteMapping("/deleteObject")
     public ResponseEntity<AnyResponse> deleteFile(@RequestParam(value = "tipoDocumento") String tipoDocumento) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getPrincipal().toString();
-        if (awsService.deleteObject(tipoDocumento)){
+        if (fileStorageService.deleteFile(tipoDocumento)) {
             return new ResponseEntity<>(new AnyResponse("File deleted"), HttpStatus.OK);
-        }else
-            return new ResponseEntity<>(new AnyResponse("Ha ocurrido un error al eliminar el documento"),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
-
+        } else {
+            return new ResponseEntity<>(new AnyResponse("Ha ocurrido un error al eliminar el documento"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    /**
-     * Método POST que sube un archivo a un bucket de AWS S3
-     * @param tipoDocumento ruta del archivo en el bucket
-     * @param file archivo a subir
-     * @return ResponseEntity con mensaje de éxito y estado HTTP 200 OK
-     */
     @Secured("ROLE_USUARIO")
     @PostMapping("/uploadFile/{tipoDocumento}")
     public ResponseEntity<AnyResponse> uploadFile(@PathVariable(value = "tipoDocumento") int tipoDocumento,
@@ -116,62 +101,60 @@ public class DocumentosController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         int userId = Integer.parseInt(authentication.getDetails().toString());
 
-        if (awsService.uploadFile(userId,tipoDocumento, file)){
-            return new ResponseEntity<>(new AnyResponse("Documento subido con éxito"),
-                                            HttpStatus.OK);
-        }else
-            return new ResponseEntity<>(new AnyResponse("Ha ocurrido un error al subir el documento"),
-                                            HttpStatus.INTERNAL_SERVER_ERROR);
+        try {
+            if (fileStorageService.uploadFile(userId + "/" + tipoDocumento, (File) file)) {
+                return new ResponseEntity<>(new AnyResponse("Documento subido con éxito"), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(new AnyResponse("Ha ocurrido un error al subir el documento"), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (IOException e) {
+            return new ResponseEntity<>(new AnyResponse("Error interno: " + e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    /**
-     * Método para descargar todos los archivos de un aspirante en una carpeta comprimida(ZIP)
-     * @param id id del aspirante
-     * @return ZIP de documentos del aspirante
-     * @throws IOException si ocurre un error
-     */
-    @Secured({ "ROLE_ADMIN", "ROLE_ENCARGADO" })
     @GetMapping("/downloadFolder")
-    public ResponseEntity<Resource> downloadS3Folder(@RequestParam Integer id) throws IOException {
+    public ResponseEntity<Resource> downloadFolder(@RequestParam Integer id) throws IOException {
         Logger logger = LoggerFactory.getLogger(DocumentosController.class);
         logger.info("Descargando carpeta");
-        // Obtener lista de nombres de archivos en la carpeta del servicio
-        List<DocumentoResponse> fileNames = new ArrayList<>();
+
+        // List<DocumentoDTO> en lugar de List<DocumentoResponse>
+        List<DocumentoDTO> fileNames;
         try {
-            fileNames =  awsService.getAspiranteFiles(id);
+            // fileStorageService.listFiles() devuelve List<DocumentoDTO>
+            fileNames = fileStorageService.listFiles(id.toString());
         } catch (Exception e) {
             logger.error("Error al obtener la lista de archivos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+
         AspiranteDTO aspirante = aspiranteService.getAspiranteByAspiranteId(id);
         UserDTO user = aspiranteService.getUserByAspirante(id);
-        // Crear archivo ZIP en memoria
+
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
-            for (DocumentoResponse fileName : fileNames) {
-                // Obtener contenido de cada archivo en la carpeta del servicio
-                if(fileName.getUrl()!=null) {
-                    byte[] fileData = awsService.downloadFile(fileName.getKeyFile(), user.getEmail());
-                    // Agregar archivo al ZIP
-                    ZipEntry zipEntry = new ZipEntry(fileName.getDocumento().getNombre()+fileName.getFormato());
+            for (DocumentoDTO fileName : fileNames) {
+                // Convertir DocumentoDTO a DocumentoResponse si es necesario para la lógica de negocio
+                if (fileName.getUrl() != null) {
+                    byte[] fileData = fileStorageService.downloadFile(fileName.getKeyFile());
+                    ZipEntry zipEntry = new ZipEntry(fileName.getTipoDocumentoDTO().getNombre() + fileName.getFormato());
                     zipOutputStream.putNextEntry(zipEntry);
                     zipOutputStream.write(fileData);
                     zipOutputStream.closeEntry();
                 }
             }
-        } catch (IOException e){
+        } catch (IOException e) {
             logger.error("Error al crear el archivo ZIP", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        // Convertir el archivo ZIP resultante en un recurso ByteArrayResource para enviarlo al front
+
         ByteArrayResource resource = new ByteArrayResource(byteArrayOutputStream.toByteArray());
         HttpHeaders headers = new HttpHeaders();
-        //pasamos el nombre del ZIP uwu
-        headers.setContentDispositionFormData("attachment", aspirante+".zip");
+        headers.setContentDispositionFormData("attachment", aspirante + ".zip");
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         return ResponseEntity
                 .ok().headers(headers)
                 .contentLength(resource.contentLength())
                 .body(resource);
     }
+
 }

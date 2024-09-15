@@ -10,16 +10,21 @@ import com.admision.maestrias.api.pam.repository.*;
 import com.admision.maestrias.api.pam.service.interfaces.AspiranteServiceInterface;
 import com.admision.maestrias.api.pam.shared.dto.AspiranteDTO;
 import com.admision.maestrias.api.pam.shared.dto.UserDTO;
-import com.amazonaws.services.kms.model.NotFoundException;
 
+
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import javax.persistence.EntityNotFoundException;
+
+
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -44,7 +49,7 @@ public class AspiranteService implements AspiranteServiceInterface {
     @Autowired
     private CohorteRepository cohorteRepository;
     @Autowired
-    private S3Repository s3Repository;
+    private FileStorageRepository fileStorageRepository;
     @Autowired
     private NotificacionService notificacionService;
 
@@ -83,12 +88,13 @@ public class AspiranteService implements AspiranteServiceInterface {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al guardar aspirante");
         }
 
-        try{
-            s3Repository.crearCarpeta(cohorteAbierto.getId() + "/" + newApplicant.getId().toString());
-        }catch (Exception e) {
+        try {
+            fileStorageRepository.createDirectory(cohorteAbierto.getId() + "/" + newApplicant.getId().toString());
+        } catch (Exception e) {
             aspiranteRepository.delete(newApplicant);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear carpeta");
         }
+
 
         AspiranteDTO newAspiranteDTO = new AspiranteDTO();
         BeanUtils.copyProperties(newApplicant, newAspiranteDTO);
@@ -253,29 +259,41 @@ public class AspiranteService implements AspiranteServiceInterface {
     @Override
     public void habilitarFechaEntrevista(Integer id, LocalDateTime fecha_entrevista) {
         CohorteEntity cohorteEntity = cohorteRepository.findCohorteByHabilitado(true);
-        if (cohorteEntity == null)
-            throw new NotFoundException("No hay una cohorte habilitada");
-        if (cohorteEntity.getEnlace_entrevista() == null)
-            throw new NotFoundException("No hay un enlace de entrevista asignado");
+        if (cohorteEntity == null) {
+            throw new EntityNotFoundException("No hay cohorte habilitado.");
+        }
 
-        Optional<AspiranteEntity> aspirante = aspiranteRepository.findById(id);
-        if (!aspirante.isPresent())
-            throw new UsernameNotFoundException("No existe ningún aspirante asociado.");
-        AspiranteEntity aspiranteEntity = aspirante.get();
+        if (cohorteEntity.getEnlace_entrevista() == null) {
+            throw new EntityNotFoundException("No se ha asignado un enlace de entrevista.");
+        }
+
+        // Usando orElseThrow para simplificar el código
+        AspiranteEntity aspiranteEntity = aspiranteRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("No existe ningún aspirante asociado con el ID: " + id));
+
         try {
+            // Asignar la fecha de entrevista al aspirante y guardarlo en la base de datos
             aspiranteEntity.setFecha_entrevista(fecha_entrevista);
             aspiranteRepository.save(aspiranteEntity);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al asignar fecha de entrevista");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al asignar fecha de entrevista", e);
         }
-        AspiranteDTO aspiranteDTO = new AspiranteDTO();
 
+        // Formatear la fecha para la notificación
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE dd 'de' MMMM 'de' yyyy 'a las' HH:mm");
         String fechaFormateada = fecha_entrevista.format(formatter);
 
-        notificacionService.crearNotificacion("Tiene una entrevista programada para el día " + fechaFormateada
-            + " este es el enlace para acceder: " + cohorteEntity.getEnlace_entrevista(), aspiranteEntity.getId());
+        // Crear la notificación
+        try {
+            notificacionService.crearNotificacion(
+                    "Tiene una entrevista programada para el día " + fechaFormateada + ". Este es el enlace para acceder: "
+                            + cohorteEntity.getEnlace_entrevista(), aspiranteEntity.getId());
+        } catch (Exception e) {
+            // Manejar la excepción si el servicio de notificación falla
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al enviar la notificación", e);
+        }
     }
+
 
     /**
      * Califica la prueba de un aspirante.

@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 
 /**
  * @author Juan Pablo Correa Tarazona, Angel Yesid Duque Cruz, Miguel Angel Lara, Julian Camilo Riveros Fonseca
@@ -80,7 +80,7 @@ public class UserService implements UserServiceInterface {
     public String confirmarCuenta(String token){
         String html;
         try {
-            int usuarioId = jwtService.getId2(token);
+            int usuarioId = jwtService.getId(token);
             UserEntity usuario = userRepository.findById(usuarioId).orElse(null);
 
             if (usuario != null) {

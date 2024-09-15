@@ -1,13 +1,14 @@
 package com.admision.maestrias.api.pam.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class CohorteEntity implements Serializable{
     /**
      * La cohorte esta habilitada 
      */
-    @Column(name = "habilitado", columnDefinition = "BIT(1) default 0")
+    @Column(nullable = false)
     private Boolean habilitado;
 
     /**

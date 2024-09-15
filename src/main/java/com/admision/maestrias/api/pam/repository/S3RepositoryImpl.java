@@ -3,10 +3,6 @@ package com.admision.maestrias.api.pam.repository;
 import com.admision.maestrias.api.pam.exceptions.DocumentNotFoundException;
 import com.admision.maestrias.api.pam.shared.dto.DocumentoDTO;
 import com.admision.maestrias.api.pam.shared.dto.S3FileInfo;
-import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
-import com.amazonaws.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,21 +24,22 @@ import java.util.stream.Collectors;
  * @author Julian Camilo Riveros Fonseca, Juan Pablo Correa Tarazona
  */
 @Repository
-public class S3RepositoryImpl implements S3Repository{
+public class S3RepositoryImpl implements S3Repository {
 
-    @Autowired
-    private AmazonS3 s3Client;
-
-    private static final Logger log = LoggerFactory.getLogger(S3RepositoryImpl.class);
-    private final String bucket = "pamweb";
 
     /**
-     * Obtiene una lista de DocumentoDTO de los objetos de un bucket de S3.
      * @return una lista de DocumentoDTO con la información de los objetos del bucket.
-     */
+     * @Autowired private AmazonS3 s3Client;
+     * <p>
+     * private static final Logger log = LoggerFactory.getLogger(S3RepositoryImpl.class);
+     * private final String bucket = "pamweb";
+     * <p>
+     * /**
+     * Obtiene una lista de DocumentoDTO de los objetos de un bucket de S3.
+
     @Override
     public List<DocumentoDTO> listObjectsInBucket() {
-        List<DocumentoDTO>  items =
+        List<DocumentoDTO> items =
                 s3Client.listObjectsV2(bucket).getObjectSummaries().stream()
                         .parallel()
                         .map(S3ObjectSummary::getKey)
@@ -59,7 +56,7 @@ public class S3RepositoryImpl implements S3Repository{
      * @param key clave del objeto en el bucket de S3.
      * @param s
      * @return un objeto de tipo DocumentoDTO con la información del objeto de S3.
-     */
+
     private DocumentoDTO mapS3ToObject(String key, String s) {
         return DocumentoDTO.builder()
                 .keyFile(key)
@@ -69,10 +66,11 @@ public class S3RepositoryImpl implements S3Repository{
 
     /**
      * Obtiene un objeto de S3.
+     *
      * @param fileName nombre del archivo en el bucket de S3.
      * @return un objeto de tipo S3ObjectInputStream con el contenido del archivo.
      * @throws IOException si ocurre un error al obtener el archivo de S3.
-     */
+
     @Override
     public S3ObjectInputStream getObject(String fileName) throws IOException {
         if (!s3Client.doesBucketExist(bucket)) {
@@ -89,9 +87,10 @@ public class S3RepositoryImpl implements S3Repository{
 
     /**
      * Descarga un archivo de S3.
+     *
      * @param fileName nombre del archivo en el bucket de S3.
      * @return un array de bytes con el contenido del archivo.
-     */
+
     @Override
     public byte[] downloadFile(String fileName) {
         S3Object s3Object = s3Client.getObject(bucket, fileName);
@@ -107,10 +106,11 @@ public class S3RepositoryImpl implements S3Repository{
 
     /**
      * Elimina un objeto del S3
+     *
      * @param fileKey nombre del archivo en el bucket de S3.
-     */
+
     @Override
-    public boolean deleteObject (String fileKey) {
+    public boolean deleteObject(String fileKey) {
         s3Client.deleteObject(bucket, fileKey);
         try {
             ObjectMetadata metadata = s3Client.getObjectMetadata(bucket, fileKey);
@@ -126,10 +126,11 @@ public class S3RepositoryImpl implements S3Repository{
 
     /**
      * Subir un archivo al S3
+     *
      * @param fileName El nombre del archivo que se va a cargar en el bucket.
-     * @param fileObj El objeto de tipo File que contiene el archivo a cargar en el bucket.
+     * @param fileObj  El objeto de tipo File que contiene el archivo a cargar en el bucket.
      * @return Un mensaje que indica que el archivo ha sido cargado correctamente en el bucket.
-     */
+
     @Override
     public ObjectMetadata uploadFile(String fileName, File fileObj) {
         s3Client.putObject(new PutObjectRequest(bucket, fileName, fileObj));
@@ -149,7 +150,7 @@ public class S3RepositoryImpl implements S3Repository{
      * @param fileName el nombre del archivo a comprobar
      * @return true si el archivo existe en Amazon S3, false si no existe
      * @throws AmazonS3Exception si ocurre un error al acceder a Amazon S3
-     */
+
     public boolean comprobarArchivoEnS3(String fileName) {
         try {
             ObjectMetadata metadata = s3Client.getObjectMetadata(bucket, fileName);
@@ -166,11 +167,12 @@ public class S3RepositoryImpl implements S3Repository{
 
     /**
      * Crear una carpeta en el bucket con el nombre completo especificado.
+     *
      * @param nombreCompleto el nombre completo de la carpeta a crear
      * @return true si la carpeta se creó correctamente, o false si no se pudo crear
-     */
+
     @Override
-    public boolean crearCarpeta( String nombreCarpeta) {
+    public boolean crearCarpeta(String nombreCarpeta) {
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(0);
         InputStream emptyContent = new ByteArrayInputStream(new byte[0]);
@@ -180,7 +182,7 @@ public class S3RepositoryImpl implements S3Repository{
             return true;
         } catch (AmazonS3Exception e) {
             if (e.getStatusCode() == 404) {
-                return  false;
+                return false;
             } else {
                 throw e;
             }
@@ -189,9 +191,10 @@ public class S3RepositoryImpl implements S3Repository{
 
     /**
      * Obtener las URLs de los archivos en la carpeta especificada del bucket.
+     *
      * @param folderName el nombre de la carpeta en el bucket
      * @return una lista de objetos S3FileInfo que representan la información de los archivos en la carpeta
-     */
+
     @Override
     public List<S3FileInfo> getUrlsOfFilesInFolder(String folderName) {
 
@@ -240,12 +243,14 @@ public class S3RepositoryImpl implements S3Repository{
 
     /**
      * Obtener la URL del archivo con el nombre especificado en el bucket.
+     *
      * @param fileName el nombre del archivo
      * @return la URL del archivo en el bucket
-     */
+
     public String getFileUrl(String fileName) {
         String url = s3Client.getUrl(bucket, fileName).toString();
         return url;
     }
 
+    */
 }

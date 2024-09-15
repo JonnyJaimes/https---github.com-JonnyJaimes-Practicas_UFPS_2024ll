@@ -3,6 +3,10 @@ package com.admision.maestrias.api.pam.security;
 import com.admision.maestrias.api.pam.models.requests.UserDetailsRequest;
 import com.admision.maestrias.api.pam.service.implementations.JWTService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -12,21 +16,19 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author Juan Pablo Correa Tarazona, Julian Camilo Riveros Fonseca
+ * Autenticación de usuarios mediante email y contraseña.
+ * Genera un token JWT en caso de autenticación exitosa.
+ *
  */
 public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
-
     private final AuthenticationManager authenticationManager;
+
     @Autowired
     private JWTService jwtService;
 
@@ -35,64 +37,53 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
         this.jwtService = jwtService;
     }
 
-    /**
-     * Intenta autenticar al usuario validando el email y la contraseña si las credenciales son validas pasa
-     * a successfulAuthentication sino va a unsuccessfulAuthentication
-     */
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
             throws AuthenticationException {
         try {
-            UserDetailsRequest userModel = new ObjectMapper().readValue(request.getInputStream(),UserDetailsRequest.class);
+            // Lee las credenciales del usuario (email y contraseña) del cuerpo de la petición
+            UserDetailsRequest userModel = new ObjectMapper().readValue(request.getInputStream(), UserDetailsRequest.class);
 
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userModel.getEmail(), userModel.getPassword());
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(userModel.getEmail(), userModel.getPassword());
 
             return authenticationManager.authenticate(authToken);
         } catch (IOException e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException("Error en la autenticación: " + e.getMessage());
         }
     }
 
-    /**
-     * Si las credenciales son válidas devuelve un token JWT el cual contiene email, rol del usuario y un tiempo
-     * de expiración de 1 día
-     */
     @Override
     public void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
-            Authentication authentication) throws IOException, ServletException {
+                                         Authentication authentication) throws IOException, ServletException {
 
-        String username = ((User)authentication.getPrincipal()).getUsername();
-
+        String username = ((User) authentication.getPrincipal()).getUsername();
         String token = jwtService.create(authentication);
 
-        Map<String, Object> body = new HashMap<String, Object>();
-        body.put("mensaje", String.format("Hola %s, has iniciado sesion con exito!", username));
-                    
+        Map<String, Object> body = new HashMap<>();
+        body.put("mensaje", String.format("Hola %s, has iniciado sesión con éxito!", username));
+        body.put("token", SecurityConstants.TOKEN_PREFIX + token);
+
         response.getWriter().write(new ObjectMapper().writeValueAsString(body));
         response.addHeader("Access-Control-Expose-Headers", "Authorization");
         response.addHeader(SecurityConstants.HEADER_STRING, SecurityConstants.TOKEN_PREFIX + token);
         response.setContentType("application/json");
-
     }
 
-    /**
-     * Si las credenciales son inválidas retorna un mensaje de error
-     */
     @Override
-	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-			AuthenticationException failed) throws IOException, ServletException {
+    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+                                              AuthenticationException failed) throws IOException, ServletException {
 
-		Map<String, Object> body = new HashMap<String, Object>();
+        Map<String, Object> body = new HashMap<>();
         if (failed instanceof BadCredentialsException)
             body.put("message", "Correo o contraseña incorrectos");
         else
             body.put("message", failed.getMessage());
 
-		body.put("error", "Error de autenticación");
-		
-		response.getWriter().write(new ObjectMapper().writeValueAsString(body));
-		response.setStatus(401);
-		response.setContentType("application/json");
-	}
+        body.put("error", "Error de autenticación");
 
+        response.getWriter().write(new ObjectMapper().writeValueAsString(body));
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+    }
 }

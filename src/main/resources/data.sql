@@ -75,3 +75,9 @@ INSERT INTO tipo_documento (id, nombre, url_formato) VALUES
                                                          (11, 'Cedula de residente y/o visa de estudiante vigente', ''),
                                                          (12, 'Notas de pregrado apostilladas', ''),
                                                          (13, 'Diploma fondo negro apostillado', '') ON CONFLICT DO NOTHING;
+
+-- Insertar algunas cohortes en la tabla 'cohorte'
+INSERT INTO cohorte (id, fecha_inicio, fecha_fin, habilitado, enlace_entrevista, enlace_prueba, fecha_max_prueba) VALUES
+    (1, '2024-01-01', '2024-06-30', true, 'http://entrevista.cohorte1.com', 'http://prueba.cohorte1.com', '2024-06-01 23:59:59'),
+    (2, '2024-07-01', '2024-12-31', false, 'http://entrevista.cohorte2.com', 'http://prueba.cohorte2.com', '2024-12-01 23:59:59')
+ON CONFLICT DO NOTHING;
